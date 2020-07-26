@@ -3,35 +3,47 @@ import re
 # Regexp digit surrounded by - + = / * 
 # [^\^][\/+-=](\d+)[\/+-=](?!\*)
 
-signs = ['+', '-', '=', '*', '/', '.']
+signs = ['+', '-', '=', '*', '/']
+
+def check_for_spaces_between_numbers(string):
+    splitted = string.split()
+    isNum = False
+    print(splitted)
+    for split in splitted:
+        if isNum is True and split[0] not in signs:
+            print("SPACE BETWEEN TWO NUMBERS ARE NOT TOLERATED")
+            exit(1)
+        if split[len(split) - 1].isdigit():
+            isNum = True
+        else:
+            isNum = False
 
 def setup_and_apply_rules(string):
-    rules = {}
-    if not rules:
-        rules = {
-            'x': 'X',
-            'X+': 'X^1+',
-            'X-': 'X^1-',
-            'X/': 'X^1/',
-            'X*': 'X^1*',
-            'X=': 'X^1=',
-            'X ': 'X^1',
-            '+X': '+1*X',
-            '-X': '-1*X',
-            '=X': '=1*X',
-            '++': '+',
-            '--': '+',
-            '+-': '-',
-            '-+': '-'
-        }
-        """
-        WE DELETE SPACES AND THEN ADD ONLY ONE AT THE END TO DETECT SINGLE X CHAR AT THE END OF FORMULA
-        """
-        string = string.replace(' ', '')
-        string += ' '
-        for key, value in rules.items():
-            string = string.replace(key, value)
-        return string
+    rules = {
+        'x': 'X',
+        'X+': 'X^1+',
+        'X-': 'X^1-',
+        'X/': 'X^1/',
+        'X*': 'X^1*',
+        'X=': 'X^1=',
+        'X ': 'X^1',
+        '+X': '+1*X',
+        '-X': '-1*X',
+        '=X': '=1*X',
+        '++': '+',
+        '--': '+',
+        '+-': '-',
+        '-+': '-'
+    }
+    """
+    WE DELETE SPACES AND THEN ADD ONLY ONE AT THE END TO DETECT SINGLE X CHAR AT THE END OF FORMULA
+    """
+    check_for_spaces_between_numbers(string)
+    string = string.replace(' ', '')
+    string += ' '
+    for key, value in rules.items():
+        string = string.replace(key, value)
+    return string
 
 def parse_math_expr(expr):
     isNum = False
@@ -48,18 +60,31 @@ def parse_math_expr(expr):
 
     for char in expr:
         
-        print(char)
+        # Handling the power
+        if isPow is True:
+            if char.isdigit():
+                if int(char) >= 0 and int(char) <= 2 and 'X' in cell and '^' in cell:
+                    cell.append(char)
+                    isPow = False
+                    continue
+                elif int(char) > 2 or int(char) < 0:
+                    print("WRONG DEGREE")
+                    exit(1)
+            elif char == 'X':
+                cell.append(char)
+                continue
+            elif char == '^' and 'X' in cell:
+                cell.append(char)
+                continue
+            elif 'X' not in cell or '^' not in cell:
+                print("WEIRD CASE")
+                exit(1)
+            else:
+                print("ERROR WITH THE DEGREE")
+                exit(1)
+
         # DIGIT
         if char.isdigit():
-            if isPow is True and 'X' not in cell:
-                print("CELL: [%s] [%s]" % (char, cell))
-                print("CAN'T MULTIPLY NUMBERS")
-                exit(1)
-                #cell.append('*')
-                #isPow = False
-            if isPow is True and int(char) > 2:
-                print("DEGREE TOO HIGH, CAN'T SOLVE")
-                exit(1)
             if isNum is False:
                 if len(cell) > 0:
                     cell = ''.join(cell)
@@ -129,13 +154,6 @@ def parse_math_expr(expr):
                 exit(1)
             isPow = True
             cell.append(char)
-        
-        # POW
-        elif char == '^':
-            if isPow is False:
-                print("ERROR NOT POWER YET FOR ^")
-                exit(1)
-            cell.append(char)
 
         # EQUAL
         elif char == '=':
@@ -154,6 +172,9 @@ def parse_math_expr(expr):
     if len(cell) > 0:
         cell = ''.join(cell)
         cells.append(cell)
+
+    if equalIsPassed is False:
+        print("We presume that your equation is equal to zero")
 
     return cells
 
@@ -177,8 +198,14 @@ def eval_math_expr(cells):
             reduced_cells[degree] = eval(''.join(sorted_cell))
         except SyntaxError:
             # Throws a syntax error if eval an empty string
-            reduced_cells[degree] = 0
-            pass
+            # If the cell contains only an X for example, its len should be 1
+            # And the value of X is equal to 1 * X
+            # Otherwise it's a 0 
+            if len(sorted_cell):
+                reduced_cells[degree] = 1
+            else:
+                reduced_cells[degree] = 0
+            continue
     print("Reduced form: ", end='')
     for degree, reduced_cell in reduced_cells.items():
         if reduced_cell:
@@ -220,7 +247,10 @@ def resolve_deg_two(cells):
         else:
             print(x)
     else:
-        print("Discriminant is strictly negative, there is no solution.")
+        print("Discriminant is strictly negative, the two complex solutions are:")
+        print("(%s - i * delta ** 0.5) / %s" % (b * -1, 2 * a))
+        print("(%s + i * delta ** 0.5) / %s" % (b * -1, 2 * a))
+
 
 def resolve_deg_one(cells):
     a = 1
@@ -236,10 +266,13 @@ def resolve_deg_one(cells):
 def print_degree(cells):
     if cells['2'] != 0:
         print("Polynomial degree: 2")
+        return 2
     elif cells['1'] != 0:
         print("Polynomial degree: 1")
-    elif cells['0'] != 0:
+        return 1
+    else:
         print("Polynomial degree: 0")
+        return 0
 
 def main():
     try:
@@ -248,28 +281,19 @@ def main():
             expr = setup_and_apply_rules(math_expr)
             cells = parse_math_expr(expr)
             sorted_cells = eval_math_expr(cells)
-            print_degree(sorted_cells)
-            if sorted_cells['2'] != 0:
+            degree = print_degree(sorted_cells)
+            if degree == 0:
+                if sorted_cells['0'] == 0:
+                    print("All real numbers are the solution")
+                else:
+                    print("There is no solution.")
+            elif degree == 2:
                 resolve_deg_two(sorted_cells)
-            else:
+            elif degree == 1:
                 resolve_deg_one(sorted_cells)
                 
     except KeyboardInterrupt:
         pass
-
-"""
-def main():
-    try:
-        while True:
-            math_expr = input('Your mathematical expression: ')
-            print("Before trimming: ", math_expr)
-            trimmed = setup_and_apply_rules(math_expr)
-            print("After trimming: ", trimmed)
-            splitted = re.findall(r'[X0-9\.]+|[^X0-9\.]+', trimmed)
-            print("After splitting: ", splitted)
-    except KeyboardInterrupt:
-        pass
-"""
 
 if __name__ == "__main__":
     main()
