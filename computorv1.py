@@ -253,9 +253,10 @@ def resolve_deg_two(cells):
             print(x)
     else:
         print("Discriminant is strictly negative, the two complex solutions are:")
-        print("(%s - i * delta ** 0.5) / %s" % (b * -1, 2 * a))
-        print("(%s + i * delta ** 0.5) / %s" % (b * -1, 2 * a))
-
+        res_p1 = -b / (2 * a)
+        res_p2 = ((delta ** 0.5) / (2 * a)).imag
+        print("%s + i * %s" % ("{0:.6f}".format(res_p1), "{0:.6f}".format(res_p2)))
+        print("%s - i * %s" % ("{0:.6f}".format(res_p1), "{0:.6f}".format(res_p2)))
 
 def resolve_deg_one(cells):
     a = 1
@@ -266,7 +267,7 @@ def resolve_deg_one(cells):
         elif degree == '0':
             b = cell
     x = -b / a
-    print("The solution is: %s" % (x))
+    print("The solution is: %s" % ("{0:.6f}".format(x)))
 
 def print_degree(cells):
     if cells['2'] != 0:
