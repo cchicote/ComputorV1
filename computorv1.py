@@ -5,14 +5,15 @@ import re
 
 signs = ['+', '-', '=', '*', '/']
 
+class CustomError(Exception):
+    pass
+
 def check_for_spaces_between_numbers(string):
     splitted = string.split()
     isNum = False
-    print(splitted)
     for split in splitted:
         if isNum is True and split[0] not in signs:
-            print("SPACE BETWEEN TWO NUMBERS ARE NOT TOLERATED")
-            exit(1)
+            raise CustomError("Bad format (check spacing)")
         if split[len(split) - 1].isdigit():
             isNum = True
         else:
@@ -53,10 +54,10 @@ def parse_math_expr(expr):
     cells = []
     cell = []
     
-    print("Expr: [%s]" % (expr))
-    if expr[len(expr) - 2] in signs:
-        print("WRONG FORMAT, CAN'T FINISH BY A SIGN")
-        exit(1)
+    # DEBUG
+    # print("Expr: [%s]" % (expr))
+    if expr[len(expr) - 2].isdigit() is False:
+        raise CustomError("Equation must end by a digit")
 
     for char in expr:
         
@@ -68,8 +69,7 @@ def parse_math_expr(expr):
                     isPow = False
                     continue
                 elif int(char) > 2 or int(char) < 0:
-                    print("WRONG DEGREE")
-                    exit(1)
+                    raise CustomError("The polynomial degree is strictly greater than 2, I can't solve.")
             elif char == 'X':
                 cell.append(char)
                 continue
@@ -77,11 +77,9 @@ def parse_math_expr(expr):
                 cell.append(char)
                 continue
             elif 'X' not in cell or '^' not in cell:
-                print("WEIRD CASE")
-                exit(1)
+                raise CustomError("Bad format with the power")
             else:
-                print("ERROR WITH THE DEGREE")
-                exit(1)
+                raise CustomError("Bad format with the degree")
 
         # DIGIT
         if char.isdigit():
@@ -135,31 +133,27 @@ def parse_math_expr(expr):
         # DOT
         elif char == '.':
             if len(cell) == 0 or isNum is False:
-                print("WRONG FORMAT 1")
-                exit(1)
+                raise CustomError("Bad format for decimal")
             else:
                 cell.append(char)
 
         # TIMES
         elif char == '*':
             if isPow is True:
-                print("ERROR DOUBLE POWER")
-                exit(1)
+                raise CustomError("Misplaced * sign")
             isPow = True
         
         # X
         elif char == 'X':
             if char in cell:
-                print("DOUBLE X")
-                exit(1)
+                raise CustomError("Misplaced X")
             isPow = True
             cell.append(char)
 
         # EQUAL
         elif char == '=':
             if equalIsPassed is True:
-                print("CAN'T BE TWO EQUAL SIGNS")
-                exit(1)
+                raise CustomError("There cannot be two = signs")
             if len(cell) > 0:
                 cell = ''.join(cell)
                 cells.append(cell)
@@ -180,9 +174,9 @@ def parse_math_expr(expr):
 
 def eval_math_expr(cells):
     sorted_cells = {}
-    sorted_cells['0'] = []
-    sorted_cells['1'] = []
     sorted_cells['2'] = []
+    sorted_cells['1'] = []
+    sorted_cells['0'] = []
     reduced_cells = {}
     first_cell = True
     for cell in cells:
@@ -211,11 +205,22 @@ def eval_math_expr(cells):
         if reduced_cell:
             if first_cell is False:
                 if reduced_cell > 0:
-                    print("+ %s * X^%s" % (reduced_cell, degree), end=' ')
+                    print("+ ", end='')
                 elif reduced_cell < 0:
-                    print("- %s * X^%s" % (reduced_cell * -1, degree), end=' ')
+                    print("- ", end='')
+                if degree == '0':
+                    print("%s" % (reduced_cell), end=' ')
+                elif degree == '1':
+                    print("%s * X" % (reduced_cell), end=' ')
+                else:
+                    print("%s * X^%s" % (reduced_cell, degree), end=' ')
             else:
-                print("%s * X^%s" % (reduced_cell, degree), end=' ')
+                if degree == '0':
+                    print("%s" % (reduced_cell), end=' ')
+                elif degree == '1':
+                    print("%s * X" % (reduced_cell), end=' ')
+                else:
+                    print("%s * X^%s" % (reduced_cell, degree), end=' ')
                 first_cell = False
     print("= 0")
     return reduced_cells
@@ -225,7 +230,7 @@ def resolve_deg_two(cells):
     b = cells['1']
     c = cells['0']
     if a == 0:
-        print("GROS PROBLEME, ON NE DEVRAIT PAS LANCER DEG_TWO SI A = 0")
+        raise CustomError("Resolution of degree 2 should not be executed if a is equal to 0")
     delta = b * b - 4 * a * c
     if delta > 0:
         print("Discriminant is strictly positive, the two solutions are:")
@@ -277,20 +282,23 @@ def print_degree(cells):
 def main():
     try:
         while True: 
-            math_expr = input('Your mathematical expression: ')
-            expr = setup_and_apply_rules(math_expr)
-            cells = parse_math_expr(expr)
-            sorted_cells = eval_math_expr(cells)
-            degree = print_degree(sorted_cells)
-            if degree == 0:
-                if sorted_cells['0'] == 0:
-                    print("All real numbers are the solution")
-                else:
-                    print("There is no solution.")
-            elif degree == 2:
-                resolve_deg_two(sorted_cells)
-            elif degree == 1:
-                resolve_deg_one(sorted_cells)
+            try:
+                math_expr = input('Your mathematical expression: ')
+                expr = setup_and_apply_rules(math_expr)
+                cells = parse_math_expr(expr)
+                sorted_cells = eval_math_expr(cells)
+                degree = print_degree(sorted_cells)
+                if degree == 0:
+                    if sorted_cells['0'] == 0:
+                        print("All real numbers are the solution")
+                    else:
+                        print("There is no solution.")
+                elif degree == 2:
+                    resolve_deg_two(sorted_cells)
+                elif degree == 1:
+                    resolve_deg_one(sorted_cells)
+            except CustomError as message:
+                print("ERROR: [%s]" % (message))
                 
     except KeyboardInterrupt:
         pass
