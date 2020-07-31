@@ -1,9 +1,10 @@
 import re
+import collections
 
 # Regexp digit surrounded by - + = / * 
 # [^\^][\/+-=](\d+)[\/+-=](?!\*)
 
-signs = ['+', '-', '=', '*', '/']
+signs = ['+', '-', '=', '*', '^']
 
 class CustomError(Exception):
     pass
@@ -54,28 +55,32 @@ def parse_math_expr(expr):
     cells = []
     cell = []
     
-    # DEBUG
-    # print("Expr: [%s]" % (expr))
-    if expr[len(expr) - 2].isdigit() is False:
+    if expr[-1].isspace():
+        expr = expr[:-1]
+    if expr[-1].isdigit() is False:
         raise CustomError("Equation must end by a digit")
 
     for char in expr:
         
+        # Checking char
+        if char.isdigit() is False and char != 'X' and char not in signs:
+            if char == ' ':
+                continue
+            raise CustomError("Wrong char encountered: %s" % (char))
+
         # Handling the power
         if isPow is True:
-            if char.isdigit():
-                if int(char) >= 0 and int(char) <= 2 and 'X' in cell and '^' in cell:
-                    cell.append(char)
-                    isPow = False
-                    continue
-                elif int(char) > 2 or int(char) < 0:
-                    raise CustomError("The polynomial degree is strictly greater than 2, I can't solve.")
+            if char.isdigit() and '^' in cell and 'X' in cell:
+                cell.append(char)
+                continue
             elif char == 'X':
                 cell.append(char)
                 continue
             elif char == '^' and 'X' in cell:
                 cell.append(char)
                 continue
+            elif (char == '+' or char == '-' or char == '=') and '^' in cell and 'X' in cell and cell[-1].isdigit():
+                isPow = False
             elif 'X' not in cell or '^' not in cell:
                 raise CustomError("Bad format with the power")
             else:
@@ -174,19 +179,17 @@ def parse_math_expr(expr):
 
 def eval_math_expr(cells):
     sorted_cells = {}
-    sorted_cells['2'] = []
-    sorted_cells['1'] = []
-    sorted_cells['0'] = []
     reduced_cells = {}
     first_cell = True
     for cell in cells:
-        if "X^1" in cell:
-            sorted_cells['1'].append(cell.split('X')[0])
-        elif "X^2" in cell:
-            sorted_cells['2'].append(cell.split('X')[0])
+        try:
+            power = cell.split('^')[1]
+        except IndexError:
+            power = '0'
+        if power in sorted_cells.keys():
+            sorted_cells[power].append(cell.split('X')[0])
         else:
-            sorted_cells['0'].append(cell.split('X')[0])
-    print(sorted_cells)
+            sorted_cells[power] = [cell.split('X')[0]]
     for degree, sorted_cell in sorted_cells.items():
         try:
             reduced_cells[degree] = eval(''.join(sorted_cell))
@@ -200,6 +203,7 @@ def eval_math_expr(cells):
             else:
                 reduced_cells[degree] = 0
             continue
+    reduced_cells = collections.OrderedDict(sorted(reduced_cells.items(), reverse=True))
     print("Reduced form: ", end='')
     for degree, reduced_cell in reduced_cells.items():
         if reduced_cell:
@@ -208,22 +212,39 @@ def eval_math_expr(cells):
                     print("+ ", end='')
                 elif reduced_cell < 0:
                     print("- ", end='')
+                    reduced_cell = reduced_cell * -1
                 if degree == '0':
                     print("%s" % (reduced_cell), end=' ')
-                elif degree == '1':
-                    print("%s * X" % (reduced_cell), end=' ')
                 else:
                     print("%s * X^%s" % (reduced_cell, degree), end=' ')
             else:
                 if degree == '0':
                     print("%s" % (reduced_cell), end=' ')
-                elif degree == '1':
-                    print("%s * X" % (reduced_cell), end=' ')
                 else:
                     print("%s * X^%s" % (reduced_cell, degree), end=' ')
                 first_cell = False
     print("= 0")
-    return reduced_cells
+    max_deg = 0
+    raiseError = False
+    for degree, sorted_cell in reduced_cells.items():
+        if int(degree) > 0:
+            max_deg = int(degree)
+        if int(degree) > 2 and sorted_cell != 0:
+            raiseError = True
+            break
+    print("Polynomial degree: %s" % (max_deg))
+    if raiseError:
+        raise CustomError("The polynomial degree is strictly greater than 2, I can't solve.")
+    return reduced_cells, max_deg
+
+def mysqrt(number):
+    iterations = 1000
+    x = number
+    for i in range(iterations):
+        if x * x == number:
+            return x
+        x = (x + (number / x)) / 2
+    return x
 
 def resolve_deg_two(cells):
     a = cells['2']
@@ -234,8 +255,8 @@ def resolve_deg_two(cells):
     delta = b * b - 4 * a * c
     if delta > 0:
         print("Discriminant is strictly positive, the two solutions are:")
-        x2 = (-b + delta ** 0.5) / (2 * a)
-        x1 = (-b - delta ** 0.5) / (2 * a)
+        x2 = (-b + mysqrt(delta)) / (2 * a)
+        x1 = (-b - mysqrt(delta)) / (2 * a)
         if x1.is_integer() is False:
             print("{0:.6f}".format(x1))
         else:
@@ -254,7 +275,7 @@ def resolve_deg_two(cells):
     else:
         print("Discriminant is strictly negative, the two complex solutions are:")
         res_p1 = -b / (2 * a)
-        res_p2 = ((delta ** 0.5) / (2 * a)).imag
+        res_p2 = (mysqrt(abs(delta)) / (2 * a))
         print("%s + i * %s" % ("{0:.6f}".format(res_p1), "{0:.6f}".format(res_p2)))
         print("%s - i * %s" % ("{0:.6f}".format(res_p1), "{0:.6f}".format(res_p2)))
 
@@ -267,18 +288,10 @@ def resolve_deg_one(cells):
         elif degree == '0':
             b = cell
     x = -b / a
-    print("The solution is: %s" % ("{0:.6f}".format(x)))
-
-def print_degree(cells):
-    if cells['2'] != 0:
-        print("Polynomial degree: 2")
-        return 2
-    elif cells['1'] != 0:
-        print("Polynomial degree: 1")
-        return 1
+    if x.is_integer():
+        print("The solution is: %s" % (x))
     else:
-        print("Polynomial degree: 0")
-        return 0
+        print("The solution is: %s" % ("{0:.6f}".format(x)))
 
 def main():
     try:
@@ -286,9 +299,9 @@ def main():
             try:
                 math_expr = input('Your mathematical expression: ')
                 expr = setup_and_apply_rules(math_expr)
+                print(expr)
                 cells = parse_math_expr(expr)
-                sorted_cells = eval_math_expr(cells)
-                degree = print_degree(sorted_cells)
+                sorted_cells, degree = eval_math_expr(cells)
                 if degree == 0:
                     if sorted_cells['0'] == 0:
                         print("All real numbers are the solution")
