@@ -4,7 +4,7 @@ import collections
 # Regexp digit surrounded by - + = / * 
 # [^\^][\/+-=](\d+)[\/+-=](?!\*)
 
-signs = ['+', '-', '=', '*', '^']
+signs = ['+', '-', '=', '*', '^', '.']
 
 class CustomError(Exception):
     pass
@@ -182,6 +182,8 @@ def eval_math_expr(cells):
     reduced_cells = {}
     first_cell = True
     for cell in cells:
+        if '.' not in cell:
+            cell = cell[0] + cell[1:].lstrip('0')
         try:
             power = cell.split('^')[1]
         except IndexError:
@@ -191,6 +193,8 @@ def eval_math_expr(cells):
         else:
             sorted_cells[power] = [cell.split('X')[0]]
     for degree, sorted_cell in sorted_cells.items():
+        reduced_cells[degree] = eval(''.join(sorted_cell))
+        """
         try:
             reduced_cells[degree] = eval(''.join(sorted_cell))
         except SyntaxError:
@@ -203,6 +207,7 @@ def eval_math_expr(cells):
             else:
                 reduced_cells[degree] = 0
             continue
+        """
     reduced_cells = collections.OrderedDict(sorted(reduced_cells.items(), reverse=True))
     print("Reduced form: ", end='')
     for degree, reduced_cell in reduced_cells.items():
