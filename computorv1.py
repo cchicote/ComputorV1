@@ -182,32 +182,22 @@ def eval_math_expr(cells):
     reduced_cells = {}
     first_cell = True
     for cell in cells:
-        if '.' not in cell:
-            cell = cell[0] + cell[1:].lstrip('0')
         try:
             power = cell.split('^')[1]
         except IndexError:
             power = '0'
+        splitted = cell.split('X')[0]
+        if splitted == '':
+            splitted = '+1'
+        if '.' not in splitted and int(splitted[1:]) != 0:
+            splitted = splitted[0] + splitted[1:].lstrip('0')
         if power in sorted_cells.keys():
-            sorted_cells[power].append(cell.split('X')[0])
+            sorted_cells[power].append(splitted)
         else:
-            sorted_cells[power] = [cell.split('X')[0]]
+            sorted_cells[power] = [splitted]
     for degree, sorted_cell in sorted_cells.items():
         reduced_cells[degree] = eval(''.join(sorted_cell))
-        """
-        try:
-            reduced_cells[degree] = eval(''.join(sorted_cell))
-        except SyntaxError:
-            # Throws a syntax error if eval an empty string
-            # If the cell contains only an X for example, its len should be 1
-            # And the value of X is equal to 1 * X
-            # Otherwise it's a 0 
-            if len(sorted_cell):
-                reduced_cells[degree] = 1
-            else:
-                reduced_cells[degree] = 0
-            continue
-        """
+
     reduced_cells = collections.OrderedDict(sorted(reduced_cells.items(), reverse=True))
     print("Reduced form: ", end='')
     for degree, reduced_cell in reduced_cells.items():
@@ -232,7 +222,7 @@ def eval_math_expr(cells):
     max_deg = 0
     raiseError = False
     for degree, sorted_cell in reduced_cells.items():
-        if int(degree) > 0:
+        if int(degree) > 0 and sorted_cell != 0:
             max_deg = int(degree)
         if int(degree) > 2 and sorted_cell != 0:
             raiseError = True
@@ -252,9 +242,18 @@ def mysqrt(number):
     return x
 
 def resolve_deg_two(cells):
-    a = cells['2']
-    b = cells['1']
-    c = cells['0']
+    try:
+        a = cells['2']
+    except KeyError:
+        a = 0
+    try:
+        b = cells['1']
+    except KeyError:
+        b = 0
+    try:
+        c = cells['0']
+    except KeyError:
+        c = 0
     if a == 0:
         raise CustomError("Resolution of degree 2 should not be executed if a is equal to 0")
     delta = b * b - 4 * a * c
@@ -293,6 +292,8 @@ def resolve_deg_one(cells):
         elif degree == '0':
             b = cell
     x = -b / a
+    # We add zero so we don't get a -0 as a solution in some cases like 0=2x
+    x += 0
     if x.is_integer():
         print("The solution is: %s" % (x))
     else:
@@ -304,7 +305,6 @@ def main():
             try:
                 math_expr = input('Your mathematical expression: ')
                 expr = setup_and_apply_rules(math_expr)
-                print(expr)
                 cells = parse_math_expr(expr)
                 sorted_cells, degree = eval_math_expr(cells)
                 if degree == 0:
