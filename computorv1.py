@@ -222,7 +222,7 @@ def eval_math_expr(cells):
     max_deg = 0
     raiseError = False
     for degree, sorted_cell in reduced_cells.items():
-        if int(degree) > 0 and sorted_cell != 0:
+        if int(degree) in range (0, 3) and int(degree) > max_deg and sorted_cell != 0:
             max_deg = int(degree)
         if int(degree) > 2 and sorted_cell != 0:
             raiseError = True
