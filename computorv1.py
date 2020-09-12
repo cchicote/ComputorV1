@@ -218,6 +218,8 @@ def eval_math_expr(cells):
                 else:
                     print("%s * X^%s" % (reduced_cell, degree), end=' ')
                 first_cell = False
+        elif not reduced_cell and first_cell is True and degree == '0':
+            print("0", end=' ')
     print("= 0")
     max_deg = 0
     raiseError = False
