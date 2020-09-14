@@ -40,6 +40,8 @@ def setup_and_apply_rules(string):
     """
     WE DELETE SPACES AND THEN ADD ONLY ONE AT THE END TO DETECT SINGLE X CHAR AT THE END OF FORMULA
     """
+    if " ^" in string:
+        raise CustomError("Bad format: space before ^ detected")
     check_for_spaces_between_numbers(string)
     string = string.replace(' ', '')
     string += ' '
