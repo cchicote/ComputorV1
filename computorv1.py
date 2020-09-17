@@ -176,8 +176,13 @@ def parse_math_expr(expr):
 
     if equalIsPassed is False:
         print("We presume that your equation is equal to zero")
-
     return cells
+
+def replace_eval(cells):
+    res = 0
+    for cell in cells:
+        res += float(cell)
+    return res
 
 def eval_math_expr(cells):
     sorted_cells = {}
@@ -198,7 +203,7 @@ def eval_math_expr(cells):
         else:
             sorted_cells[power] = [splitted]
     for degree, sorted_cell in sorted_cells.items():
-        reduced_cells[degree] = eval(''.join(sorted_cell))
+        reduced_cells[degree] = replace_eval(sorted_cell)
 
     reduced_cells = collections.OrderedDict(sorted(reduced_cells.items(), reverse=True))
     print("Reduced form: ", end='')
