@@ -1,9 +1,6 @@
 import re
 import collections
 
-# Regexp digit surrounded by - + = / * 
-# [^\^][\/+-=](\d+)[\/+-=](?!\*)
-
 signs = ['+', '-', '=', '*', '^', '.']
 
 class CustomError(Exception):
