@@ -6,6 +6,8 @@ signs = ['+', '-', '=', '*', '^', '.']
 class CustomError(Exception):
     pass
 
+# To avoid these cases:
+# 12 2 + 12x^2 = 0
 def check_for_spaces_between_numbers(string):
     splitted = string.split()
     isNum = False
@@ -17,6 +19,8 @@ def check_for_spaces_between_numbers(string):
         else:
             isNum = False
 
+# Some regexp rules
+# In order to be able to handle natural form
 def setup_and_apply_rules(string):
     rules = {
         'x': 'X',
@@ -34,9 +38,6 @@ def setup_and_apply_rules(string):
         '+-': '-',
         '-+': '-'
     }
-    """
-    WE DELETE SPACES AND THEN ADD ONLY ONE AT THE END TO DETECT SINGLE X CHAR AT THE END OF FORMULA
-    """
     if " ^" in string:
         raise CustomError("Bad format: space before ^ detected")
     check_for_spaces_between_numbers(string)
@@ -46,6 +47,7 @@ def setup_and_apply_rules(string):
         string = string.replace(key, value)
     return string
 
+# Ugly parser
 def parse_math_expr(expr):
     isNum = False
     isPow = False
@@ -60,7 +62,6 @@ def parse_math_expr(expr):
         raise CustomError("Equation must end by a digit")
 
     for char in expr:
-        
         # Checking char
         if char.isdigit() is False and char != 'X' and char not in signs:
             if char == ' ':
@@ -175,12 +176,17 @@ def parse_math_expr(expr):
         print("We presume that your equation is equal to zero")
     return cells
 
+# Just a small function to reduce the fraction
+# Like i used to with the eval() function that may be
+# forbidden on the subject
 def replace_eval(cells):
     res = 0
     for cell in cells:
         res += float(cell)
     return res
 
+# Now we reduce the math expression
+# And get its degree
 def eval_math_expr(cells):
     sorted_cells = {}
     reduced_cells = {}
@@ -238,6 +244,8 @@ def eval_math_expr(cells):
         raise CustomError("The polynomial degree is strictly greater than 2, I can't solve.")
     return reduced_cells, max_deg
 
+# Standard sqrt function to calculate 
+# a square root
 def mysqrt(number):
     iterations = 1000
     x = number
@@ -247,6 +255,7 @@ def mysqrt(number):
         x = (x + (number / x)) / 2
     return x
 
+# Resolving equations of degree 2
 def resolve_deg_two(cells):
     try:
         a = cells['2']
@@ -289,6 +298,7 @@ def resolve_deg_two(cells):
         print("%s + i * %s" % ("{0:.6f}".format(res_p1), "{0:.6f}".format(res_p2)))
         print("%s - i * %s" % ("{0:.6f}".format(res_p1), "{0:.6f}".format(res_p2)))
 
+# Resolving equations of degree 1
 def resolve_deg_one(cells):
     a = 1
     b = 0
