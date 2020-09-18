@@ -272,6 +272,7 @@ def resolve_deg_two(cells):
     if a == 0:
         raise CustomError("Resolution of degree 2 should not be executed if a is equal to 0")
     delta = b * b - 4 * a * c
+    print("Discriminant: {0:.3f}".format(delta))
     if delta > 0:
         print("Discriminant is strictly positive, the two solutions are:")
         x2 = (-b + mysqrt(delta)) / (2 * a)
